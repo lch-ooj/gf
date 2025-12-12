@@ -42,7 +42,7 @@ var (
 				controller.Employee.Register(group)
 				controller.Order.Register(group)
 				controller.OrderDetail.Register(group)
-				controller.Auth.RegisterRoutes(group)
+				controller.Auth.Register(group)
 
 				// Special handler that needs authentication.
 				group.Group("/", func(group *ghttp.RouterGroup) {

@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/gogf/gf-demo-user/v2/internal/model/entity"
+	"github.com/gogf/gf-demo-user/v2/internal/dao"
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/glog"
@@ -20,11 +20,11 @@ var Auth = AuthService{}
 // SendRegisterCode 发送注册验证码
 func (s *AuthService) SendRegisterCode(ctx context.Context, email string) error {
 	// 检查邮箱是否已经注册
-	count, err := g.DB().Model("employee").Where("email", email).Count()
+	registered, err := dao.Auth.IsEmailRegistered(ctx, email)
 	if err != nil {
 		return err
 	}
-	if count > 0 {
+	if registered {
 		return gerror.New("邮箱已被注册")
 	}
 
@@ -42,7 +42,7 @@ func (s *AuthService) SendRegisterCode(ctx context.Context, email string) error 
 	return nil
 }
 
-// Register 用户注册
+// Register 员工注册
 func (s *AuthService) Register(ctx context.Context, email, password, code string) (int64, error) {
 	// 验证码校验
 	cacheCode, err := g.Redis().Get(ctx, email)
@@ -57,23 +57,17 @@ func (s *AuthService) Register(ctx context.Context, email, password, code string
 	}
 
 	// 检查邮箱是否已经注册
-	count, err := g.DB().Model("employee").Where("email", email).Count()
+	registered, err := dao.Auth.IsEmailRegistered(ctx, email)
 	if err != nil {
 		return 0, err
 	}
-	if count > 0 {
+	if registered {
 		return 0, gerror.New("邮箱已被注册")
 	}
 
 	// 直接使用明文密码
 	// 插入数据库
-	r, err := g.DB().Model("employee").Data(g.Map{
-		"name":     email,
-		"username": email,
-		"password": password,
-		"email":    email,
-		"phone":    "",
-	}).Insert()
+	id, err := dao.Auth.RegisterEmployee(ctx, email, password)
 	if err != nil {
 		return 0, err
 	}
@@ -84,22 +78,13 @@ func (s *AuthService) Register(ctx context.Context, email, password, code string
 		glog.Warning(ctx, "Failed to delete verification code:", err)
 	}
 
-	id, err := r.LastInsertId()
-	if err != nil {
-		return 0, err
-	}
-
 	return id, nil
 }
 
-// Login 用户登录
+// Login 员工登录
 func (s *AuthService) Login(ctx context.Context, email, password string) (map[string]interface{}, error) {
 	// 直接使用明文密码查询
-	var employee *entity.Employee
-	err := g.DB().Model("employee").Where(g.Map{
-		"email":    email,
-		"password": password,
-	}).Scan(&employee)
+	employee, err := dao.Auth.GetEmployeeByEmailAndPassword(ctx, email, password)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +92,7 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (map[st
 		return nil, gerror.New("邮箱或密码错误")
 	}
 
-	// 生成token (这里简单使用用户ID作为token)
+	// 生成token (这里简单使用员工ID作为token)
 	token := gconv.String(employee.Id)
 
 	result := g.Map{
@@ -122,11 +107,11 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (map[st
 // SendResetCode 发送密码重置验证码
 func (s *AuthService) SendResetCode(ctx context.Context, email string) error {
 	// 检查邮箱是否存在
-	count, err := g.DB().Model("employee").Where("email", email).Count()
+	registered, err := dao.Auth.IsEmailRegistered(ctx, email)
 	if err != nil {
 		return err
 	}
-	if count == 0 {
+	if !registered {
 		return gerror.New("邮箱未注册")
 	}
 
@@ -159,18 +144,16 @@ func (s *AuthService) ResetPassword(ctx context.Context, email, newPassword, cod
 	}
 
 	// 检查邮箱是否存在
-	count, err := g.DB().Model("employee").Where("email", email).Count()
+	registered, err := dao.Auth.IsEmailRegistered(ctx, email)
 	if err != nil {
 		return err
 	}
-	if count == 0 {
+	if !registered {
 		return gerror.New("邮箱未注册")
 	}
 
 	// 直接使用明文密码更新
-	_, err = g.DB().Model("employee").Data(g.Map{
-		"password": newPassword,
-	}).Where("email", email).Update()
+	err = dao.Auth.UpdatePassword(ctx, email, newPassword)
 	if err != nil {
 		return err
 	}

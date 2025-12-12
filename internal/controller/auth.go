@@ -12,9 +12,9 @@ type AuthController struct{}
 
 var Auth = AuthController{}
 
-func (c *AuthController) RegisterRoutes(r *ghttp.RouterGroup) {
+func (c *AuthController) Register(r *ghttp.RouterGroup) {
 	r.POST("/auth/register/send-code", c.SendRegisterCode)
-	r.POST("/auth/register", c.Register)
+	r.POST("/auth/register", c.RegisterEmployee)
 	r.POST("/auth/login", c.Login)
 	r.POST("/auth/password/reset/send-code", c.SendResetCode)
 	r.POST("/auth/password/reset", c.ResetPassword)
@@ -36,14 +36,14 @@ func (c *AuthController) SendRegisterCode(r *ghttp.Request) {
 	r.Response.WriteJson(g.Map{"code": 0, "message": "验证码已发送"})
 }
 
-// Register 用户注册
-func (c *AuthController) Register(r *ghttp.Request) {
+// Register 员工注册
+func (c *AuthController) RegisterEmployee(r *ghttp.Request) {
 	var req struct {
 		Email    string `json:"email" v:"required|email"`
 		Password string `json:"password" v:"required|min-length:6"`
 		Code     string `json:"code" v:"required|length:4,4"`
 	}
-	
+
 	if err := r.Parse(&req); err != nil {
 		r.Response.WriteJson(g.Map{"code": 1, "message": err.Error()})
 		return
@@ -57,13 +57,13 @@ func (c *AuthController) Register(r *ghttp.Request) {
 	r.Response.WriteJson(g.Map{"code": 0, "message": "注册成功", "data": g.Map{"id": id, "email": req.Email}})
 }
 
-// Login 用户登录
+// Login 员工登录
 func (c *AuthController) Login(r *ghttp.Request) {
 	var req struct {
 		Email    string `json:"email" v:"required|email"`
 		Password string `json:"password" v:"required"`
 	}
-	
+
 	if err := r.Parse(&req); err != nil {
 		r.Response.WriteJson(g.Map{"code": 1, "message": err.Error()})
 		return
@@ -100,7 +100,7 @@ func (c *AuthController) ResetPassword(r *ghttp.Request) {
 		NewPassword string `json:"new_password" v:"required|min-length:6"`
 		Code        string `json:"code" v:"required|length:4,4"`
 	}
-	
+
 	if err := r.Parse(&req); err != nil {
 		r.Response.WriteJson(g.Map{"code": 1, "message": err.Error()})
 		return
