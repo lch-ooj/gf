@@ -42,6 +42,7 @@ var (
 				controller.Employee.Register(group)
 				controller.Order.Register(group)
 				controller.OrderDetail.Register(group)
+				controller.Auth.RegisterRoutes(group)
 
 				// Special handler that needs authentication.
 				group.Group("/", func(group *ghttp.RouterGroup) {
@@ -93,6 +94,10 @@ func enhanceOpenAPIDoc(s *ghttp.Server) {
 		goai.Tag{
 			Name:        "OrderDetail",
 			Description: "订单明细管理",
+		},
+		goai.Tag{
+			Name:        "Auth",
+			Description: "认证：注册、登录、密码重置",
 		},
 	}
 
