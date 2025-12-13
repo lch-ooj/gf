@@ -54,7 +54,7 @@ func (s *sMiddleware) Auth(r *ghttp.Request) {
 
 // JWTAuth 是JWT认证中间件
 func (s *sMiddleware) JWTAuth(r *ghttp.Request) {
-	// 简单实现，后续可以扩展
+	// 已经由gtoken中间件处理JWT认证，此处留空或者用于额外处理
 	r.Middleware.Next()
 }
 

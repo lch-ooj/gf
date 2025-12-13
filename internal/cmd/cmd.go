@@ -7,11 +7,14 @@ import (
 	"github.com/gogf/gf/v2/net/ghttp"
 	"github.com/gogf/gf/v2/net/goai"
 	"github.com/gogf/gf/v2/os/gcmd"
+	"github.com/gogf/gf/v2/os/gctx"
 
 	"github.com/gogf/gf-demo-user/v2/internal/consts"
 	"github.com/gogf/gf-demo-user/v2/internal/controller"
 	"github.com/gogf/gf-demo-user/v2/internal/controller/user"
 	"github.com/gogf/gf-demo-user/v2/internal/service"
+
+	"github.com/goflyfox/gtoken/v2/gtoken"
 )
 
 var (
@@ -22,6 +25,14 @@ var (
 		Brief: "start http server of simple goframe demos",
 		Func: func(ctx context.Context, parser *gcmd.Parser) (err error) {
 			s := g.Server()
+
+			// 初始化gtoken
+			gt := initGToken()
+			gtokenMiddleware := gtoken.NewDefaultMiddleware(gt)
+
+			// 设置AuthService中的GToken实例
+			service.Auth.SetGToken(gt)
+
 			s.Use(ghttp.MiddlewareHandlerResponse)
 			s.Group("/", func(group *ghttp.RouterGroup) {
 				// Group middlewares.
@@ -54,7 +65,8 @@ var (
 
 				// 需要JWT认证的接口组
 				group.Group("/api/v1", func(group *ghttp.RouterGroup) {
-					group.Middleware(service.Middleware().JWTAuth)
+					// 使用gtoken中间件
+					group.Middleware(gtokenMiddleware.Auth)
 					controller.Dish.Register(group)
 					controller.Employee.Register(group)
 					controller.Order.Register(group)
@@ -69,6 +81,25 @@ var (
 		},
 	}
 )
+
+// initGToken 初始化 gtoken
+func initGToken() gtoken.Token {
+	// 从 config.yaml 读取 gtoken 配置（假设配置在 gtoken 节点下）
+	cfg := g.Cfg().MustGet(gctx.New(), "gtoken").MapStrVar()
+
+	// 创建 GToken 实例
+	gt := gtoken.NewDefaultToken(gtoken.Options{
+		CacheMode:      cfg["cacheMode"].Int8(),
+		CachePreKey:    cfg["cacheKey"].String(),
+		Timeout:        cfg["timeout"].Int64(),    // 转换为毫秒
+		MaxRefresh:     cfg["maxRefresh"].Int64(), // 转换为毫秒
+		TokenDelimiter: cfg["tokenDelimiter"].String(),
+		EncryptKey:     []byte(cfg["encryptKey"].String()),
+		MultiLogin:     cfg["multiLogin"].Bool(),
+	})
+
+	return gt
+}
 
 func enhanceOpenAPIDoc(s *ghttp.Server) {
 	openapi := s.GetOpenApi()

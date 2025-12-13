@@ -11,11 +11,20 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/glog"
 	"github.com/gogf/gf/v2/util/gconv"
+	
+	"github.com/goflyfox/gtoken/v2/gtoken"
 )
 
-type AuthService struct{}
+type AuthService struct{
+	GToken gtoken.Token
+}
 
 var Auth = AuthService{}
+
+// SetGToken 设置GToken实例
+func (s *AuthService) SetGToken(gt gtoken.Token) {
+	s.GToken = gt
+}
 
 // SendRegisterCode 发送注册验证码
 func (s *AuthService) SendRegisterCode(ctx context.Context, email string) error {
@@ -31,7 +40,7 @@ func (s *AuthService) SendRegisterCode(ctx context.Context, email string) error 
 	// 生成4位随机数字验证码
 	rand.Seed(time.Now().UnixNano())
 	code := fmt.Sprintf("%04d", rand.Intn(10000))
-	glog.Debugf(ctx, "=======================  code for email %s: %s   =====================", email, code)
+	glog.Debugf(ctx, "===================  code for email %s: %s   ===================", email, code)
 
 	// 存储到Redis，5分钟过期
 	err = g.Redis().SetEX(ctx, email, code, 5*60)
@@ -92,12 +101,31 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (map[st
 		return nil, gerror.New("邮箱或密码错误")
 	}
 
-	// 生成token (这里简单使用员工ID作为token)
-	token := gconv.String(employee.Id)
+	// 使用GToken生成真正的JWT token
+	userKey := gconv.String(employee.Id)
+	userData := g.Map{
+		"id":       employee.Id,
+		"name":     employee.Name,
+		"username": employee.Username,
+		"email":    employee.Email,
+		"phone":    employee.Phone,
+	}
+	
+	glog.Debugf(ctx, "Generating token for user: %s with data: %v", userKey, userData)
+	token, err := s.GToken.Generate(ctx, userKey, userData)
+	if err != nil {
+		glog.Errorf(ctx, "Failed to generate token for user %s: %v", userKey, err)
+		return nil, err
+	}
+	
+	glog.Debugf(ctx, "Successfully generated token: %s", token)
 
+	// 获取token的过期时间
+	options := s.GToken.GetOptions()
+	
 	result := g.Map{
 		"token":      token,
-		"expires_in": 3600,
+		"expires_in": options.Timeout,
 		"user":       employee,
 	}
 
@@ -118,7 +146,7 @@ func (s *AuthService) SendResetCode(ctx context.Context, email string) error {
 	// 生成4位随机数字验证码
 	rand.Seed(time.Now().UnixNano())
 	code := fmt.Sprintf("%04d", rand.Intn(10000))
-	glog.Debugf(ctx, "Password reset verification code for email %s: %s", email, code)
+	glog.Debugf(ctx, "===================   code for email %s: %s   ===================", email, code)
 
 	// 存储到Redis，5分钟过期
 	err = g.Redis().SetEX(ctx, "reset_"+email, code, 5*60)

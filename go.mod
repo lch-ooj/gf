@@ -3,6 +3,7 @@ module github.com/gogf/gf-demo-user/v2
 go 1.23.0
 
 require (
+	github.com/goflyfox/gtoken/v2 v2.0.3
 	github.com/gogf/gf/contrib/drivers/mysql/v2 v2.9.6
 	github.com/gogf/gf/contrib/nosql/redis/v2 v2.9.6
 	github.com/gogf/gf/v2 v2.9.6
@@ -33,7 +34,7 @@ require (
 	github.com/olekukonko/ll v0.0.9 // indirect
 	github.com/olekukonko/tablewriter v1.1.0 // indirect
 	github.com/redis/go-redis/v9 v9.12.1 // indirect
-	github.com/rivo/uniseg v0.4.4 // indirect
+	github.com/rivo/uniseg v0.4.7 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/otel v1.38.0 // indirect
 	go.opentelemetry.io/otel/metric v1.38.0 // indirect
