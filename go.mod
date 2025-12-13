@@ -7,6 +7,7 @@ require (
 	github.com/gogf/gf/contrib/drivers/mysql/v2 v2.9.6
 	github.com/gogf/gf/contrib/nosql/redis/v2 v2.9.6
 	github.com/gogf/gf/v2 v2.9.6
+	github.com/jordan-wright/email v4.0.1-0.20210109023952-943e75fe5223+incompatible
 )
 
 //中途出现一个严重问题，因为mysql的驱动版本过低（v2.6.1），导致后端向数据库发送请求时，发到192.168.200.1，

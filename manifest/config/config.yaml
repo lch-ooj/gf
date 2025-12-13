@@ -42,3 +42,11 @@ gtoken:
   encryptKey: "12345678901234567890123456789012"  # 加密密钥，必须32位
   authFailMsg: "请求错误或登录超时"               # 认证失败消息
   multiLogin: true             # 允许多点登录
+
+# SMTP配置
+smtp:
+  host: "smtp.163.com"     # SMTP服务器地址
+  port: 465                     # SMTP端口
+  username: "15726952193@163.com"    # SMTP用户名
+  password: "ECmg432KxdsNCGQX"    # SMTP密码
+  from: "15726952193@163.com"  # 发件人邮箱地址

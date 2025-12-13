@@ -13,6 +13,9 @@ import (
 	"github.com/gogf/gf/v2/util/gconv"
 	
 	"github.com/goflyfox/gtoken/v2/gtoken"
+	"github.com/jordan-wright/email"
+	"net/smtp"
+	"crypto/tls"
 )
 
 type AuthService struct{
@@ -20,6 +23,44 @@ type AuthService struct{
 }
 
 var Auth = AuthService{}
+
+// sendEmailCode 发送邮件验证码
+func (s *AuthService) sendEmailCode(ctx context.Context, emailAddress, code, subject string) error {
+	// 从配置文件获取SMTP配置
+	smtpConfig := g.Cfg().MustGet(ctx, "smtp").MapStrStr()
+	
+	host := smtpConfig["host"]
+	port := smtpConfig["port"]
+	username := smtpConfig["username"]
+	password := smtpConfig["password"]
+	from := smtpConfig["from"]
+	
+	if host == "" || port == "" || username == "" || password == "" || from == "" {
+		return gerror.New("SMTP配置不完整，请检查config.yaml中的smtp配置")
+	}
+	
+	// 构造邮件内容
+	e := email.NewEmail()
+	e.From = fmt.Sprintf("验证码服务 <%s>", from)
+	e.To = []string{emailAddress}
+	e.Subject = subject
+	e.Text = []byte(fmt.Sprintf("您的验证码是: %s (5分钟内有效)", code))
+	
+	// 发送邮件
+	portInt := gconv.Int(port)
+	
+	// 对于465端口，使用SSL连接
+	if portInt == 465 {
+		return e.SendWithTLS(fmt.Sprintf("%s:%d", host, portInt), smtp.PlainAuth("", username, password, host), &tls.Config{
+			ServerName: host,
+		})
+	}
+	
+	// 对于其他端口(如587)，使用StartTLS连接
+	return e.SendWithStartTLS(fmt.Sprintf("%s:%d", host, portInt), smtp.PlainAuth("", username, password, host), &tls.Config{
+		ServerName: host,
+	})
+}
 
 // SetGToken 设置GToken实例
 func (s *AuthService) SetGToken(gt gtoken.Token) {
@@ -46,6 +87,12 @@ func (s *AuthService) SendRegisterCode(ctx context.Context, email string) error 
 	err = g.Redis().SetEX(ctx, email, code, 5*60)
 	if err != nil {
 		return gerror.New("验证码发送失败")
+	}
+
+	// 发送邮件验证码
+	err = s.sendEmailCode(ctx, email, code, "注册验证码")
+	if err != nil {
+		return gerror.Newf("发送验证码邮件失败: %v", err)
 	}
 
 	return nil
@@ -152,6 +199,12 @@ func (s *AuthService) SendResetCode(ctx context.Context, email string) error {
 	err = g.Redis().SetEX(ctx, "reset_"+email, code, 5*60)
 	if err != nil {
 		return gerror.New("验证码发送失败")
+	}
+
+	// 发送邮件验证码
+	err = s.sendEmailCode(ctx, email, code, "密码重置验证码")
+	if err != nil {
+		return gerror.Newf("发送验证码邮件失败: %v", err)
 	}
 
 	return nil
