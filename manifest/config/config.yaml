@@ -36,8 +36,8 @@ redis:
 gtoken:
   cacheMode: 2                 # 缓存模式 1 gcache 2 redis
   cacheKey: "GFToken:"         # 缓存key前缀
-  timeout: 7200                # 超时时间（秒）
-  maxRefresh: 86400            # 最大刷新时间（秒）
+  timeout: 3600000                # 超时时间（ms）
+  maxRefresh: 86400000            # 最大刷新时间（ms）
   tokenDelimiter: "_"          # token分隔符
   encryptKey: "12345678901234567890123456789012"  # 加密密钥，必须32位
   authFailMsg: "请求错误或登录超时"               # 认证失败消息
